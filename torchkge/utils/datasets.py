@@ -7,7 +7,7 @@ This module's code is freely adapted from Scikit-Learn's
 sklearn.datasets.base.py code.
 """
 
-import shutil
+import os
 import tarfile
 import zipfile
 
@@ -19,6 +19,36 @@ from urllib.request import urlretrieve
 from torchkge.data_structures import KnowledgeGraph
 
 from torchkge.utils import get_data_home
+
+
+def load_ccks(data_path):
+    """Load FB13 dataset.
+
+    Parameters
+    ----------
+    data_home: str, optional
+        Path to the `torchkge_data` directory (containing data folders). If
+        files are not present on disk in this directory, they are downloaded
+        and then placed in the right place.
+
+    Returns
+    -------
+    kg_train: torchkge.data_structures.KnowledgeGraph
+    kg_val: torchkge.data_structures.KnowledgeGraph
+    kg_test: torchkge.data_structures.KnowledgeGraph
+
+    """
+
+    df1 = read_csv(os.path.join(data_path, 'train2id.txt'),
+                   sep='\t', header=None, names=['from', 'rel', 'to'])
+    df2 = read_csv(os.path.join(data_path, 'valid2id.txt'),
+                   sep='\t', header=None, names=['from', 'rel', 'to'])
+    df3 = read_csv(os.path.join(data_path, 'test2id.txt'),
+                   sep='\t', header=None, names=['from', 'rel', 'to'])
+    df = concat([df1, df2, df3])
+    kg = KnowledgeGraph(df)
+
+    return kg.split_kg(sizes=(len(df1), len(df2), len(df3)))
 
 
 def load_fb13(data_home=None):

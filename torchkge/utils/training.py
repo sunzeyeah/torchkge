@@ -3,10 +3,10 @@
 Copyright TorchKGE developers
 @author: Armand Boschin <aboschin@enst.fr>
 """
+import torch
+from tqdm.autonotebook import tqdm
 from ..sampling import BernoulliNegativeSampler, UniformNegativeSampler
 from ..utils.data import get_n_batches
-
-from tqdm.autonotebook import tqdm
 
 
 class TrainDataLoader:
@@ -29,7 +29,7 @@ class TrainDataLoader:
 
     """
 
-    def __init__(self, kg, batch_size, sampling_type, use_cuda=None):
+    def __init__(self, kg, batch_size, sampling_type, n_neg, use_cuda=None):
         self.h = kg.head_idx
         self.t = kg.tail_idx
         self.r = kg.relations
@@ -38,9 +38,9 @@ class TrainDataLoader:
         self.b_size = batch_size
 
         if sampling_type == 'unif':
-            self.sampler = UniformNegativeSampler(kg)
+            self.sampler = UniformNegativeSampler(kg, n_neg=n_neg)
         elif sampling_type == 'bern':
-            self.sampler = BernoulliNegativeSampler(kg)
+            self.sampler = BernoulliNegativeSampler(kg, n_neg=n_neg)
 
         self.tmp_cuda = use_cuda in ['batch', 'all']
 
@@ -131,7 +131,8 @@ class Trainer:
 
     """
     def __init__(self, model, criterion, kg_train, n_epochs, batch_size,
-                 optimizer, sampling_type='bern', use_cuda=None):
+                 optimizer, model_save_path, sampling_type='bern', n_neg=1,
+                 use_cuda=None):
 
         self.model = model
         self.criterion = criterion
@@ -139,8 +140,9 @@ class Trainer:
         self.use_cuda = use_cuda
         self.n_epochs = n_epochs
         self.optimizer = optimizer
+        self.model_save_path = model_save_path
         self.sampling_type = sampling_type
-
+        self.n_neg = n_neg
         self.batch_size = batch_size
         self.n_triples = len(kg_train)
 
@@ -166,6 +168,7 @@ class Trainer:
         data_loader = TrainDataLoader(self.kg_train,
                                       batch_size=self.batch_size,
                                       sampling_type=self.sampling_type,
+                                      n_neg=self.n_neg,
                                       use_cuda=self.use_cuda)
         for epoch in iterator:
             sum_ = 0
@@ -176,3 +179,5 @@ class Trainer:
             iterator.set_description(
                 'Epoch {} | mean loss: {:.5f}'.format(epoch + 1, sum_ / len(data_loader)))
             self.model.normalize_parameters()
+
+            torch.save(self.model.state_dict(), self.model_save_path.format(epoch))
