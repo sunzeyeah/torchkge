@@ -193,7 +193,7 @@ class Trainer:
             for i, batch in enumerate(data_loader):
                 loss = self.process_batch(batch)
                 sum_ += loss
-                if i % self.log_steps == 0:
+                if self.log_steps is not None and i % self.log_steps == 0:
                     logger.info(f"[Epoch-{epoch}] step: {i}, loss: {loss}")
 
             iterator.set_description(

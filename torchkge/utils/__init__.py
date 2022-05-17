@@ -3,7 +3,7 @@ from .data import DataLoader, get_data_home, clear_data_home
 from .data_redundancy import count_triplets, duplicates
 from .data_redundancy import cartesian_product_relations
 
-from .datasets import load_fb15k, load_fb13, load_fb15k237
+from .datasets import load_fb15k, load_fb13, load_fb15k237, load_ccks
 from .datasets import load_wn18, load_wn18rr
 from .datasets import load_yago3_10, load_wikidatasets, load_wikidata_vitals
 
