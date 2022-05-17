@@ -57,7 +57,26 @@ def load_ccks(data_path, do_eval, do_test):
         sizes.append(len(df3))
 
     df = concat(dfs)
-    kg = KnowledgeGraph(df)
+
+    ent2ix = dict()
+    with open(os.path.join(data_path, 'entity2id.txt'), "r", encoding="utf-8") as r:
+        while True:
+            line = r.readline()
+            if not line:
+                break
+            entity, entity_id = line.strip().split("\t")
+            ent2ix[entity] = int(entity_id)
+
+    rel2ix = dict()
+    with open(os.path.join(data_path, 'relation2id.txt'), "r", encoding="utf-8") as r:
+        while True:
+            line = r.readline()
+            if not line:
+                break
+            relation, relation_id = line.strip().split("\t")
+            rel2ix[relation] = int(relation_id)
+
+    kg = KnowledgeGraph(df, ent2ix=ent2ix, rel2ix=rel2ix)
 
     return kg.split_kg(sizes=sizes)
 

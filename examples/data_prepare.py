@@ -336,16 +336,16 @@ def main():
     logger.info(f"# triplets: {len(triplets)}, # relations: {len(relation_dict)}, # entities: {len(entity_dict)}")
 
     # saving
-    # file_entity2id = os.path.join(args.output_dir, "entity2id.txt")
-    # file_relation2id = os.path.join(args.output_dir, "relation2id.txt")
-    # with open(file_entity2id, "w", encoding="utf-8") as w:
-    #     w.write(str(len(entity_dict))+"\n")
-    #     for entity_name, entity_id in entity_dict.items():
-    #         w.write("\t".join((entity_name, str(entity_id)))+"\n")
-    # with open(file_relation2id, "w", encoding="utf-8") as w:
-    #     w.write(str(len(relation_dict))+"\n")
-    #     for relation_name, relation_id in relation_dict.items():
-    #         w.write("\t".join((relation_name, str(relation_id)))+"\n")
+    file_entity2id = os.path.join(args.output_dir, "entity2id.txt")
+    file_relation2id = os.path.join(args.output_dir, "relation2id.txt")
+    with open(file_entity2id, "w", encoding="utf-8") as w:
+        # w.write(str(len(entity_dict))+"\n")
+        for entity_name, entity_id in entity_dict.items():
+            w.write("\t".join((entity_name, str(entity_id)))+"\n")
+    with open(file_relation2id, "w", encoding="utf-8") as w:
+        # w.write(str(len(relation_dict))+"\n")
+        for relation_name, relation_id in relation_dict.items():
+            w.write("\t".join((relation_name, str(relation_id)))+"\n")
 
     # train, valid & test split
     triplets = list(triplets)
