@@ -5,7 +5,7 @@ Copyright TorchKGE developers
 """
 
 from torch import tensor
-from torch.nn import Embedding
+from torch.nn import Embedding, Linear
 from torch.nn.init import xavier_uniform_
 
 import pickle
@@ -26,6 +26,16 @@ def init_embedding(n_vectors, dim):
     xavier_uniform_(entity_embeddings.weight.data)
 
     return entity_embeddings
+
+
+def init_linear_projection(n_vectors, dim, bias=False):
+    """Create a torch.nn.Linear object with `n_vectors` samples and `dim`
+    dimensions. It is then initialized with Xavier uniform distribution.
+    """
+    linear_projection = Linear(n_vectors, dim, bias=bias)
+    xavier_uniform_(linear_projection.weight.data)
+
+    return linear_projection
 
 
 def load_embeddings(model, dim, dataset, data_home=None):

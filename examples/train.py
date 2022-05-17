@@ -5,7 +5,7 @@ import torch
 
 from torch.optim import Adam
 from torchkge.evaluation import LinkPredictionEvaluator
-from torchkge.models import TransEModel
+from torchkge.models import TransEModel, PKGMModel
 from torchkge.utils.datasets import load_ccks, load_fb15k
 from torchkge.utils import Trainer, MarginLoss
 
@@ -31,9 +31,11 @@ def get_parser():
     parser.add_argument("--train_batch_size", default=2048, type=int, help="Total batch size for training.")
     parser.add_argument("--eval_batch_size", default=2048, type=int, help="Total batch size for training.")
     parser.add_argument("--learning_rate", default=1e-3, type=float, help="The initial learning rate for Adam.")
+    parser.add_argument("--start_epoch", default=0, type=int, help="starting training epoch")
     parser.add_argument("--num_train_epochs", default=1000, type=int, help="Total number of training epochs to perform.")
-    parser.add_argument("--weight_decay", default=1e-3, type=float, help="weight decay")
+    parser.add_argument("--weight_decay", default=1e-5, type=float, help="weight decay")
     parser.add_argument("--log_steps", default=10, type=int, help="every n steps, log training process")
+    parser.add_argument("--pretrained_model_path", default=None, type=str, help="pretrained model path")
     # optimization
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--fp16", action="store_true", help="Whether to use 16-bit float precision instead of 32-bit")
@@ -59,8 +61,17 @@ def main():
     logger.info(f"finished loading data")
 
     # Define the model and criterion
-    model = TransEModel(args.dim, kg_train.n_ent, kg_train.n_rel,
-                        dissimilarity_type=args.norm)
+    if "transe" in args.model_name:
+        model = TransEModel(args.dim, kg_train.n_ent, kg_train.n_rel,
+                            dissimilarity_type=args.norm)
+    elif "pkgm" in args.model_name:
+        model = PKGMModel(args.dim, kg_train.n_ent, kg_train.n_rel,
+                            dissimilarity_type=args.norm)
+    else:
+        raise ValueError(f"Unsuported model name: {args.model_name}")
+    if args.pretrained_model_path is not None:
+        state_dict = torch.load(args.pretrained_model_path, map_location="cpu")
+        model.load_state_dict(state_dict)
     criterion = MarginLoss(args.margin)
     optimizer = Adam(model.parameters(), lr=args.learning_rate,
                      weight_decay=args.weight_decay, eps=args.adam_epsilon)
@@ -76,7 +87,7 @@ def main():
                       args.train_batch_size, optimizer=optimizer,
                       model_save_path=model_save_path, sampling_type=args.sampling_type,
                       n_neg=args.n_neg, use_cuda=use_cuda, fp16=args.fp16, scaler=scaler,
-                      log_steps=args.log_steps)
+                      log_steps=args.log_steps, start_epoch=args.start_epoch)
     trainer.run()
 
     # Evaluation

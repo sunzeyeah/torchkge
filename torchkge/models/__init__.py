@@ -5,6 +5,7 @@ from .translation import TransHModel
 from .translation import TransRModel
 from .translation import TransDModel
 from .translation import TorusEModel
+from .translation import PKGMModel
 
 from .bilinear import RESCALModel
 from .bilinear import DistMultModel

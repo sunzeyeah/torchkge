@@ -140,7 +140,8 @@ class Trainer:
     """
     def __init__(self, model, criterion, kg_train, n_epochs, batch_size,
                  optimizer, model_save_path, sampling_type='bern', n_neg=1,
-                 use_cuda=None, fp16=False, scaler=None, log_steps=100):
+                 use_cuda=None, fp16=False, scaler=None, log_steps=100,
+                 start_epoch=0):
 
         self.model = model
         self.criterion = criterion
@@ -156,6 +157,7 @@ class Trainer:
         self.fp16 = fp16
         self.scaler = scaler
         self.log_steps = log_steps
+        self.start_epoch = start_epoch
 
     def process_batch(self, current_batch):
         self.optimizer.zero_grad()
@@ -182,7 +184,7 @@ class Trainer:
             self.model.cuda()
             self.criterion.cuda()
 
-        iterator = tqdm(range(self.n_epochs), unit='epoch')
+        iterator = tqdm(range(self.start_epoch, self.n_epochs), unit='epoch')
         data_loader = TrainDataLoader(self.kg_train,
                                       batch_size=self.batch_size,
                                       sampling_type=self.sampling_type,
@@ -194,10 +196,10 @@ class Trainer:
                 loss = self.process_batch(batch)
                 sum_ += loss
                 if self.log_steps is not None and i % self.log_steps == 0:
-                    logger.info(f"[Epoch-{epoch}] step: {i}, loss: {loss}")
+                    logger.info(f"[Epoch-{epoch + 1}] step: {i}, loss: {loss}")
 
             iterator.set_description(
                 'Epoch {} | mean loss: {:.5f}'.format(epoch + 1, sum_ / len(data_loader)))
             self.model.normalize_parameters()
 
-            torch.save(self.model.state_dict(), self.model_save_path.format(epoch))
+        torch.save(self.model.state_dict(), self.model_save_path.format(epoch+1))
