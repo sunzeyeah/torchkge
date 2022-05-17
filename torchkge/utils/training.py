@@ -4,9 +4,17 @@ Copyright TorchKGE developers
 @author: Armand Boschin <aboschin@enst.fr>
 """
 import torch
+import logging
 from tqdm.autonotebook import tqdm
 from ..sampling import BernoulliNegativeSampler, UniformNegativeSampler
 from ..utils.data import get_n_batches
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-4s [%(filename)s:%(lineno)s]  %(message)s",
+    datefmt="%Y/%m/%d %H:%M:%S",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 
 class TrainDataLoader:
@@ -132,7 +140,7 @@ class Trainer:
     """
     def __init__(self, model, criterion, kg_train, n_epochs, batch_size,
                  optimizer, model_save_path, sampling_type='bern', n_neg=1,
-                 use_cuda=None):
+                 use_cuda=None, fp16=False, scaler=None, log_steps=100):
 
         self.model = model
         self.criterion = criterion
@@ -145,6 +153,9 @@ class Trainer:
         self.n_neg = n_neg
         self.batch_size = batch_size
         self.n_triples = len(kg_train)
+        self.fp16 = fp16
+        self.scaler = scaler
+        self.log_steps = log_steps
 
     def process_batch(self, current_batch):
         self.optimizer.zero_grad()
@@ -152,9 +163,16 @@ class Trainer:
         h, t, r = current_batch['h'], current_batch['t'], current_batch['r']
         nh, nt = current_batch['nh'], current_batch['nt']
 
-        p, n = self.model(h, t, r, nh, nt)
-        loss = self.criterion(p, n)
-        loss.backward()
+        if self.fp16:
+            with torch.cuda.amp.autocast():
+                p, n = self.model(h, t, r, nh, nt)
+                loss = self.criterion(p, n)
+            self.scaler.scale(loss).backward()
+        else:
+            p, n = self.model(h, t, r, nh, nt)
+            loss = self.criterion(p, n)
+            loss.backward()
+
         self.optimizer.step()
 
         return loss.detach().item()
@@ -175,6 +193,8 @@ class Trainer:
             for i, batch in enumerate(data_loader):
                 loss = self.process_batch(batch)
                 sum_ += loss
+                if i+1 % self.log_steps == 0:
+                    logger.info(f"[Epoch-{epoch}] step: {i}, loss: {loss}")
 
             iterator.set_description(
                 'Epoch {} | mean loss: {:.5f}'.format(epoch + 1, sum_ / len(data_loader)))

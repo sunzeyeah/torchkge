@@ -23,23 +23,22 @@ def get_parser():
     # Required parameters
     parser.add_argument("--data_dir", required=True, type=str, help="模型训练数据地址")
     parser.add_argument("--output_dir", required=True, type=str, help="The output directory where the model checkpoints will be written.")
-    parser.add_argument("--model_name", default="transE", type=str, help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                                                                         "bert-large-uncased, roberta-base",)
+    parser.add_argument("--model_name", default="transe_epoch-{}.bin", type=str, help="model saving name",)
     # training
     parser.add_argument("--do_eval", action="store_true", help="是否进行模型验证")
     parser.add_argument("--cuda_mode", default="all", help="cuda mode, all or batch")
-    parser.add_argument("--train_batch_size", default=32, type=int, help="Total batch size for training.")
-    # parser.add_argument("--eval_batch_size", default=32, type=int, help="Total batch size for training.")
-    parser.add_argument("--learning_rate", default=1.0, type=float, help="The initial learning rate for Adam.")
-    parser.add_argument("--num_train_epochs", default=10, type=int, help="Total number of training epochs to perform.")
+    parser.add_argument("--train_batch_size", default=2048, type=int, help="Total batch size for training.")
+    parser.add_argument("--eval_batch_size", default=2048, type=int, help="Total batch size for training.")
+    parser.add_argument("--learning_rate", default=1e-3, type=float, help="The initial learning rate for Adam.")
+    parser.add_argument("--num_train_epochs", default=1000, type=int, help="Total number of training epochs to perform.")
     parser.add_argument("--weight_decay", default=1e-3, type=float, help="weight decay")
-    # parser.add_argument("--threads", default=8, type=int, help="Number of workers in the dataloader.")
+    parser.add_argument("--log_steps", default=10, type=int, help="every n steps, log training process")
     # optimization
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--fp16", action="store_true", help="Whether to use 16-bit float precision instead of 32-bit")
     # Graph Embedding
-    parser.add_argument("--dim", default=64, type=int, help="dimension of graph embedding")
-    parser.add_argument("--margin", default=5.0, type=float, help="maring loss")
+    parser.add_argument("--dim", default=128, type=int, help="dimension of graph embedding")
+    parser.add_argument("--margin", default=1.0, type=float, help="maring loss")
     parser.add_argument("--n_neg", default=1, type=int, help="number of negative samples")
     # parser.add_argument("--negative_entities", default=3, type=int, help="number of negative entities")
     # parser.add_argument("--negative_relations", default=3, type=int, help="number of negative relations")
@@ -66,18 +65,23 @@ def main():
                      weight_decay=args.weight_decay, eps=args.adam_epsilon)
 
     # Start Training
+    if args.fp16:
+        scaler = torch.cuda.amp.GradScaler()
+    else:
+        scaler = None
     use_cuda = args.cuda_mode if torch.cuda.is_available() else None
     model_save_path = os.path.join(args.output_dir, args.model_name)
     trainer = Trainer(model, criterion, kg_train, args.num_train_epochs,
                       args.train_batch_size, optimizer=optimizer,
                       model_save_path=model_save_path, sampling_type=args.sampling_type,
-                      n_neg=args.n_neg, use_cuda=use_cuda)
+                      n_neg=args.n_neg, use_cuda=use_cuda, fp16=args.fp16, scaler=scaler,
+                      log_steps=args.log_steps)
     trainer.run()
 
     # Evaluation
     if args.do_eval:
         evaluator = LinkPredictionEvaluator(model, kg_test)
-        evaluator.evaluate(200)
+        evaluator.evaluate(args.eval_batch_size)
         evaluator.print_results()
 
 
