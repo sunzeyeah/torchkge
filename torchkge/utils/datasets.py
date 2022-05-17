@@ -21,7 +21,7 @@ from torchkge.data_structures import KnowledgeGraph
 from torchkge.utils import get_data_home
 
 
-def load_ccks(data_path):
+def load_ccks(data_path, do_eval, do_test):
     """Load FB13 dataset.
 
     Parameters
@@ -39,16 +39,27 @@ def load_ccks(data_path):
 
     """
 
+    dfs = []
     df1 = read_csv(os.path.join(data_path, 'train2id.txt'),
                    sep='\t', header=None, names=['from', 'rel', 'to'])
-    df2 = read_csv(os.path.join(data_path, 'valid2id.txt'),
-                   sep='\t', header=None, names=['from', 'rel', 'to'])
-    df3 = read_csv(os.path.join(data_path, 'test2id.txt'),
-                   sep='\t', header=None, names=['from', 'rel', 'to'])
-    df = concat([df1, df2, df3])
+    dfs.append(df1)
+    sizes = [len(df1)]
+    if do_eval:
+        df2 = read_csv(os.path.join(data_path, 'valid2id.txt'),
+                       sep='\t', header=None, names=['from', 'rel', 'to'])
+        dfs.append(df2)
+        sizes.append(len(df2))
+
+    if do_test:
+        df3 = read_csv(os.path.join(data_path, 'test2id.txt'),
+                       sep='\t', header=None, names=['from', 'rel', 'to'])
+        dfs.append(df3)
+        sizes.append(len(df3))
+
+    df = concat(dfs)
     kg = KnowledgeGraph(df)
 
-    return kg.split_kg(sizes=(len(df1), len(df2), len(df3)))
+    return kg.split_kg(sizes=sizes)
 
 
 def load_fb13(data_home=None):

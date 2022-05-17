@@ -26,6 +26,7 @@ def get_parser():
     parser.add_argument("--model_name", default="transe_epoch-{}.bin", type=str, help="model saving name",)
     # training
     parser.add_argument("--do_eval", action="store_true", help="是否进行模型验证")
+    parser.add_argument("--do_test", action="store_true", help="是否进行模型测试")
     parser.add_argument("--cuda_mode", default="all", help="cuda mode, all or batch")
     parser.add_argument("--train_batch_size", default=2048, type=int, help="Total batch size for training.")
     parser.add_argument("--eval_batch_size", default=2048, type=int, help="Total batch size for training.")
@@ -53,8 +54,8 @@ def main():
     args = get_parser()
 
     # Load dataset
-    kg_train, kg_val, kg_test = load_ccks(args.data_dir)
-    # kg_train, kg_val, kg_test = load_fb15k()
+    kgs = load_ccks(args.data_dir, args.do_eval, args.do_test)
+    kg_train = kgs[0]
     logger.info(f"finished loading data")
 
     # Define the model and criterion
@@ -79,7 +80,11 @@ def main():
     trainer.run()
 
     # Evaluation
-    if args.do_eval:
+    if args.do_test:
+        if args.do_eval:
+            kg_test = kgs[2]
+        else:
+            kg_test = kgs[1]
         evaluator = LinkPredictionEvaluator(model, kg_test)
         evaluator.evaluate(args.eval_batch_size)
         evaluator.print_results()

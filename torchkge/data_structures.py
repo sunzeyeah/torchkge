@@ -204,8 +204,13 @@ class KnowledgeGraph(Dataset):
                         raise WrongArgumentsError('Sizes should sum to the '
                                                   'number of facts.')
                 else:
-                    raise SizeMismatchError('Tuple `sizes` should be of '
-                                            'length 2 or 3.')
+                    try:
+                        assert (sizes[0] == self.n_facts)
+                    except AssertionError:
+                        raise WrongArgumentsError('Sizes should sum to the '
+                                                  'number of facts.')
+                    # raise SizeMismatchError('Tuple `sizes` should be of '
+                    #                         'length 2 or 3.')
             except AssertionError:
                 raise SizeMismatchError('Tuple `sizes` should sum up to the '
                                         'number of facts in the knowledge '
@@ -255,30 +260,41 @@ class KnowledgeGraph(Dataset):
         else:
             # return training and testing graphs
 
-            assert (((sizes is not None) and len(sizes) == 2) or
-                    ((sizes is None) and not validation))
-            if sizes is None:
-                mask_tr, mask_te = self.get_mask(share, validation=False)
+            if (((sizes is not None) and len(sizes) == 2) or
+                    ((sizes is None) and not validation)):
+                if sizes is None:
+                    mask_tr, mask_te = self.get_mask(share, validation=False)
+                else:
+                    mask_tr = cat([tensor([1 for _ in range(sizes[0])]),
+                                   tensor([0 for _ in range(sizes[1])])]).bool()
+                    mask_te = ~mask_tr
+                return (KnowledgeGraph(
+                            kg={'heads': self.head_idx[mask_tr],
+                                'tails': self.tail_idx[mask_tr],
+                                'relations': self.relations[mask_tr]},
+                            ent2ix=self.ent2ix, rel2ix=self.rel2ix,
+                            dict_of_heads=self.dict_of_heads,
+                            dict_of_tails=self.dict_of_tails,
+                            dict_of_rels=self.dict_of_rels),
+                        KnowledgeGraph(
+                            kg={'heads': self.head_idx[mask_te],
+                                'tails': self.tail_idx[mask_te],
+                                'relations': self.relations[mask_te]},
+                            ent2ix=self.ent2ix, rel2ix=self.rel2ix,
+                            dict_of_heads=self.dict_of_heads,
+                            dict_of_tails=self.dict_of_tails,
+                            dict_of_rels=self.dict_of_rels))
             else:
-                mask_tr = cat([tensor([1 for _ in range(sizes[0])]),
-                               tensor([0 for _ in range(sizes[1])])]).bool()
-                mask_te = ~mask_tr
-            return (KnowledgeGraph(
-                        kg={'heads': self.head_idx[mask_tr],
-                            'tails': self.tail_idx[mask_tr],
-                            'relations': self.relations[mask_tr]},
-                        ent2ix=self.ent2ix, rel2ix=self.rel2ix,
-                        dict_of_heads=self.dict_of_heads,
-                        dict_of_tails=self.dict_of_tails,
-                        dict_of_rels=self.dict_of_rels),
-                    KnowledgeGraph(
-                        kg={'heads': self.head_idx[mask_te],
-                            'tails': self.tail_idx[mask_te],
-                            'relations': self.relations[mask_te]},
-                        ent2ix=self.ent2ix, rel2ix=self.rel2ix,
-                        dict_of_heads=self.dict_of_heads,
-                        dict_of_tails=self.dict_of_tails,
-                        dict_of_rels=self.dict_of_rels))
+                assert len(sizes) == 1
+
+                return [KnowledgeGraph(
+                    kg={'heads': self.head_idx,
+                        'tails': self.tail_idx,
+                        'relations': self.relations},
+                    ent2ix=self.ent2ix, rel2ix=self.rel2ix,
+                    dict_of_heads=self.dict_of_heads,
+                    dict_of_tails=self.dict_of_tails,
+                    dict_of_rels=self.dict_of_rels)]
 
     def get_mask(self, share, validation=False):
         """Returns masks to split knowledge graph into train, test and
