@@ -34,7 +34,7 @@ def get_parser():
     parser.add_argument("--start_epoch", default=0, type=int, help="starting training epoch")
     parser.add_argument("--num_train_epochs", default=1000, type=int, help="Total number of training epochs to perform.")
     parser.add_argument("--weight_decay", default=1e-5, type=float, help="weight decay")
-    parser.add_argument("--log_steps", default=10, type=int, help="every n steps, log training process")
+    parser.add_argument("--log_steps", default=None, type=int, help="every n steps, log training process")
     parser.add_argument("--pretrained_model_path", default=None, type=str, help="pretrained model path")
     # optimization
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
