@@ -35,6 +35,7 @@ def get_parser():
     parser.add_argument("--num_train_epochs", default=1000, type=int, help="Total number of training epochs to perform.")
     parser.add_argument("--weight_decay", default=1e-5, type=float, help="weight decay")
     parser.add_argument("--log_steps", default=None, type=int, help="every n steps, log training process")
+    parser.add_argument("--save_epochs", default=None, type=int, help="every n epochs, save model")
     parser.add_argument("--pretrained_model_path", default=None, type=str, help="pretrained model path")
     # optimization
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
@@ -87,7 +88,8 @@ def main():
                       args.train_batch_size, optimizer=optimizer,
                       model_save_path=model_save_path, sampling_type=args.sampling_type,
                       n_neg=args.n_neg, use_cuda=use_cuda, fp16=args.fp16, scaler=scaler,
-                      log_steps=args.log_steps, start_epoch=args.start_epoch)
+                      log_steps=args.log_steps, start_epoch=args.start_epoch,
+                      save_epochs=args.save_epochs)
     trainer.run()
 
     # Evaluation

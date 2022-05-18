@@ -141,7 +141,7 @@ class Trainer:
     def __init__(self, model, criterion, kg_train, n_epochs, batch_size,
                  optimizer, model_save_path, sampling_type='bern', n_neg=1,
                  use_cuda=None, fp16=False, scaler=None, log_steps=100,
-                 start_epoch=0):
+                 start_epoch=0, save_epochs=None):
 
         self.model = model
         self.criterion = criterion
@@ -158,6 +158,7 @@ class Trainer:
         self.scaler = scaler
         self.log_steps = log_steps
         self.start_epoch = start_epoch
+        self.save_epoch = save_epochs
 
     def process_batch(self, current_batch):
         self.optimizer.zero_grad()
@@ -201,5 +202,8 @@ class Trainer:
             iterator.set_description(
                 'Epoch {} | mean loss: {:.5f}'.format(epoch + 1, sum_ / len(data_loader)))
             self.model.normalize_parameters()
+
+            if self.save_epoch is not None and (epoch+1) % self.save_epoch == 0:
+                torch.save(self.model.state_dict(), self.model_save_path.format(epoch+1))
 
         torch.save(self.model.state_dict(), self.model_save_path.format(epoch+1))

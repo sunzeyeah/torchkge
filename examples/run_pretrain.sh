@@ -12,10 +12,11 @@ OUTPUT_DIR=${ROOT_DIR}/output
 MODEL_NAME="pkgm_epoch-{}.bin"
 TRAIN_BATCH_SIZE=32768
 EVAL_BATCH_SIZE=32768
-LEARNING_RATE=1e-3
-NUM_EPOCHS=1000
-EMBEDDING_DIM=128
-MARGIN=5.0
+LEARNING_RATE=1e-4
+NUM_EPOCHS=2000
+SAVE_EPOCHS=1000
+EMBEDDING_DIM=768
+MARGIN=1.0
 
 python $MAIN \
   --data_dir $DATA_DIR \
@@ -28,4 +29,5 @@ python $MAIN \
   --num_train_epochs $NUM_EPOCHS \
   --dim $EMBEDDING_DIM \
   --margin $MARGIN \
-  --fp16
+  --save_epochs $SAVE_EPOCHS
+#  --fp16
