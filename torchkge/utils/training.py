@@ -139,9 +139,9 @@ class Trainer:
 
     """
     def __init__(self, model, criterion, kg_train, n_epochs, batch_size,
-                 optimizer, model_save_path, sampling_type='bern', n_neg=1,
+                 optimizer, scheduler, model_save_path, sampling_type='bern', n_neg=1,
                  use_cuda=None, fp16=False, scaler=None, log_steps=100,
-                 start_epoch=0, save_epochs=None):
+                 start_epoch=0, save_epochs=None, gradient_accumulation_steps=1):
 
         self.model = model
         self.criterion = criterion
@@ -149,6 +149,7 @@ class Trainer:
         self.use_cuda = use_cuda
         self.n_epochs = n_epochs
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.model_save_path = model_save_path
         self.sampling_type = sampling_type
         self.n_neg = n_neg
@@ -159,6 +160,7 @@ class Trainer:
         self.log_steps = log_steps
         self.start_epoch = start_epoch
         self.save_epoch = save_epochs
+        self.gradient_accumulation_steps=gradient_accumulation_steps
 
     def process_batch(self, current_batch):
         self.optimizer.zero_grad()
@@ -175,8 +177,6 @@ class Trainer:
             p, n = self.model(h, t, r, nh, nt)
             loss = self.criterion(p, n)
             loss.backward()
-
-        self.optimizer.step()
 
         return loss.detach().item()
 
@@ -195,6 +195,15 @@ class Trainer:
             sum_ = 0
             for i, batch in enumerate(data_loader):
                 loss = self.process_batch(batch)
+                # 更新optimizer
+                if (i + 1) % self.gradient_accumulation_steps == 0:
+                    if self.fp16:
+                        self.scaler.step(self.optimizer)
+                        self.scaler.update()
+                    else:
+                        self.optimizer.step()
+                    # 更新学习率
+                    self.scheduler.step()
                 sum_ += loss
                 if self.log_steps is not None and i % self.log_steps == 0:
                     logger.info(f"[Epoch-{epoch + 1}] step: {i}, loss: {loss}")
